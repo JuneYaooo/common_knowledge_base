@@ -1,0 +1,7 @@
+embedding_db_mapping:
+  test: m3e-base
+
+embedding_path_mapping:
+  e5-large: E5_LARGE_EMBEDDING_MODEL_PATH
+  m3e-base: M3E_BASE_EMBEDDING_MODEL_PATH
+  bge-m3: BGE_M3_EMBEDDING_MODEL_PATH

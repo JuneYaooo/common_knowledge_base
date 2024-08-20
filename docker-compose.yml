@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  kb_api:
+    build: .
+    command: /opt/miniconda/bin/conda run -n common_kb python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "9000:8000"
+    volumes:
+      - .:/usr/src/app
+      - ./.env:/usr/src/app/.env  # 将 .env 文件映射到容器中的应用目录，这里需要修改为当前使用的.env
+      - /home/ubuntu/models:/home/ubuntu/models  # 将主机的模型目录映射到容器中的模型目录，这里需要修改为自己的模型目录
+    environment:
+      - DEBUG=1
+    depends_on:
+      - redis
+      - qdrant
+
+  celery:
+    build: .
+    command: /opt/miniconda/bin/conda run -n common_kb celery -A common_knowledge_base worker -l info --pool=solo --logfile=/usr/src/app/logs/worker.log
+    volumes:
+      - .:/usr/src/app
+      - ./.env:/usr/src/app/.env  # 将 .env 文件映射到容器中的应用目录，这里需要修改为当前使用的.env
+      - /home/ubuntu/models:/home/ubuntu/models  # 将主机的模型目录映射到容器中的模型目录，这里需要修改为自己的模型目录
+      - ./logs/worker.log:/usr/src/app/logs/worker.log
+    depends_on:
+      - redis
+      - qdrant
+
+  redis:
+    image: "redis:7.2.2"
+    container_name: kb_redis
+    ports:
+      - "6255:6379"
+
+  qdrant:
+    image: qdrant/qdrant:v1.10.1
+    container_name: kb_qdrant
+    ports:
+      - "6999:6333"
+    volumes:
+      - /home/ubuntu/qdrant_cdss/:/qdrant/storage
