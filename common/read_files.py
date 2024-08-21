@@ -694,36 +694,6 @@ def process_markdown_old(markdown_text, file_name):
 
 def is_text_garbled(text):
     # 中文与英文的简单乱码判断
-    # 1. 中文文本中常见的汉字比率应较高，同时不应有大量无意义的符号。
-    chinese_characters = re.findall(r'[\u4e00-\u9fff]', text)
-    symbol_characters = re.findall(r'[\u0000-\u0020\u3000\uFFFD]', text)  # 各类符号和空白字符
-
-    if len(chinese_characters) > 0:
-        # 如果文本中包含大量中文字符
-        chinese_ratio = len(chinese_characters) / max(len(text), 1)
-        symbol_ratio = len(symbol_characters) / max(len(text), 1)
-        # 认为有效中文字符应占总字符的 20% 以上且无意义符号不应超过 30%
-        return chinese_ratio < 0.2 or symbol_ratio > 0.3
-
-    # 2. 对主要是英文的文本，保持原来的非 ASCII 比例检测
-    non_ascii_ratio = sum(1 for char in text if ord(char) > 127) / max(len(text), 1)
-    return non_ascii_ratio > 0.3
-
-def is_text_garbled(text):
-    # 中文与英文的简单乱码判断
-    chinese_characters = re.findall(r'[\u4e00-\u9fff]', text)
-    symbol_characters = re.findall(r'[\u0000-\u0020\u3000\uFFFD]', text)  # 各类符号和空白字符
-
-    if len(chinese_characters) > 0:
-        chinese_ratio = len(chinese_characters) / max(len(text), 1)
-        symbol_ratio = len(symbol_characters) / max(len(text), 1)
-        return chinese_ratio < 0.2 or symbol_ratio > 0.3
-
-    non_ascii_ratio = sum(1 for char in text if ord(char) > 127) / max(len(text), 1)
-    return non_ascii_ratio > 0.3
-
-def is_text_garbled(text):
-    # 中文与英文的简单乱码判断
     chinese_characters = re.findall(r'[\u4e00-\u9fff]', text)
     symbol_characters = re.findall(r'[\u0000-\u0020\u3000\uFFFD]', text)  # 各类符号和空白字符
 
