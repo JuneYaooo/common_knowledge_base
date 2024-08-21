@@ -18,12 +18,12 @@ services:
 
   celery:
     build: .
-    command: /opt/miniconda/bin/conda run -n common_kb celery -A common_knowledge_base worker -l info --pool=solo --logfile=/usr/src/app/api_logs/worker.log
+    command: /opt/miniconda/bin/conda run -n common_kb celery -A common_knowledge_base worker -l info --pool=solo --logfile=/usr/src/app/logs/worker.log
     volumes:
       - .:/usr/src/app
       - ./.env:/usr/src/app/.env  # 将 .env 文件映射到容器中的应用目录，这里需要修改为当前使用的.env
       - /home/ubuntu/models:/home/ubuntu/models  # 将主机的模型目录映射到容器中的模型目录，这里需要修改为自己的模型目录
-      - ./api_logs/worker.log:/usr/src/app/api_logs/worker.log
+      - ./logs/worker.log:/usr/src/app/logs/worker.log
     depends_on:
       - redis
       - qdrant
