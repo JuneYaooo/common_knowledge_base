@@ -1,10 +1,12 @@
 FROM nvidia/cuda:11.7.1-devel-ubuntu20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 RUN sed -i 's/archive.ubuntu.com/mirrors.tencentyun.com/g' /etc/apt/sources.list && sed -i 's/security.ubuntu.com/mirrors.tencentyun.com/g' /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y wget git default-libmysqlclient-dev pkg-config build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget git default-libmysqlclient-dev pkg-config build-essential fonts-noto-cjk libcairo2 libpango1.0-0 && rm -rf /var/lib/apt/lists/*
 
 RUN wget https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh && bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda && rm Miniconda3-latest-Linux-x86_64.sh
 

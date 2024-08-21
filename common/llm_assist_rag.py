@@ -6,7 +6,7 @@ import os
 import time
 import requests
 def pulse_generate(prompt):
-    url = "https://mchatgpt-internal.dev.6ccloud.com/v1/api/completion/generate_json"
+    url = f"{os.getenv("PULSE_URL")}/v1/api/completion/generate_json"
 
     payload = json.dumps({
         "action": "To user",
@@ -17,14 +17,14 @@ def pulse_generate(prompt):
             }
         ],
         "gen_kwargs": {
-            "model": "102bv14_no_tools",
+            "model": f"{os.getenv("PULSE_MODEL")}",
             "num_return_sequences": 1,
             "max_new_token":4096
         }
     })
     headers = {
         'accept': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3NDJjYWM3Ny0wZWQ1LTQ3MjYtYmM1MS1lZjQ2Zjg5MjhkNWMiLCJleHAiOjIwMDYzOTUxNDQsInNjb3BlcyI6WyJ1c2VyIl19.CPuXznn-c4WHkYQU8bCMVyPr4tWwczDCdVDuzcPrWf4',
+        'Authorization': f'Bearer {os.getenv("PULSE_TOKEN")}',
         'Content-Type': 'application/json'
     }
 
