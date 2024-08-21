@@ -6,7 +6,7 @@ import os
 import time
 import requests
 def pulse_generate(prompt):
-    url = f"{os.getenv("PULSE_URL")}/v1/api/completion/generate_json"
+    url = f"{os.getenv('PULSE_URL')}/v1/api/completion/generate_json"
 
     payload = json.dumps({
         "action": "To user",
@@ -17,14 +17,14 @@ def pulse_generate(prompt):
             }
         ],
         "gen_kwargs": {
-            "model": f"{os.getenv("PULSE_MODEL")}",
+            "model": f"{os.getenv('PULSE_MODEL')}",
             "num_return_sequences": 1,
             "max_new_token":4096
         }
     })
     headers = {
         'accept': 'application/json',
-        'Authorization': f'Bearer {os.getenv("PULSE_TOKEN")}',
+        'Authorization': f"Bearer {os.getenv('PULSE_TOKEN')}",
         'Content-Type': 'application/json'
     }
 
