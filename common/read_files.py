@@ -785,22 +785,6 @@ def extract_pdf(filepath):
     logger.info(f"All extraction methods failed or text is garbled for {filename}")
     return {}
 
-def extract_pdf(filepath):
-    filename = os.path.basename(filepath)
-    result = {'file_extension': 'pdf', 'file_name': filename}
-
-    try:
-        with open(filepath, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
-            content = []
-            for page in reader.pages:
-                content.append(page.extract_text())
-
-        result['file_content'] = "".join(content)
-        return result
-    except Exception as e:
-        logger.info(f"Error processing file {filename}: {e}")
-        return []
 
 def read_docx(filepath):
     """
