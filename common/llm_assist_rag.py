@@ -6,7 +6,7 @@ import os
 import time
 import requests
 def pulse_generate(prompt):
-    url = f"{os.getenv('PULSE_URL')}/v1/api/completion/generate_json"
+    url = f"{os.getenv('PULSE_URL')}"
 
     payload = json.dumps({
         "action": "To user",
