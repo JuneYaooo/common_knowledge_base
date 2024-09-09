@@ -156,7 +156,9 @@ class VectorDatabaseUpdater:
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        print(f"insert {len(ids)} data, Time spent: {elapsed_time:.5f} seconds")
+        update_status = f"insert {len(ids)} data, Time spent: {elapsed_time:.5f} seconds"
+        print(update_status)
+        return update_status
 
     def reconnect_to_qdrant(self, new_host=None, new_port=None, new_collection_name=None):
         """

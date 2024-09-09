@@ -15,5 +15,6 @@ urlpatterns = [
     path('import_kb/', views.CustomizeKBView.as_view({'post': 'import_kb'}), name='import_kb'),
     path('check_task_status/', views.CustomizeKBView.as_view({'get': 'check_task_status'}), name='check_task_status'),
     path('get_vector_search/', views.CustomizeKBView.as_view({'post': 'get_vector_search'}), name='get_vector_search'),
+    path('import_vectors/', views.CustomizeKBView.as_view({'post': 'import_vectors'}), name='import_vectors'),
     path('get_merged_vector_search/', views.CustomizeKBView.as_view({'post': 'get_merged_vector_search'}), name='get_merged_vector_search')
 ]

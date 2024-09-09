@@ -17,6 +17,7 @@ import requests
 from typing import List, Dict, Tuple
 import ast
 import time
+import uuid
 
 EMBEDDING_MODEL_PATH = os.getenv("EMBEDDING_MODEL_PATH")
 QDRANT_HOST = os.getenv("QDRANT_HOST")
@@ -134,6 +135,62 @@ class CustomizeKBView(ModelViewSet):
             }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
+    
+    @action(detail=False, methods=['POST'])
+    def import_vectors(self, request):
+        try:
+            # 获取数据
+            print('self.request.data~',self.request.data)
+            user_id = self.request.data.get('user_id')
+            payloads = self.request.data.get('payloads')
+            texts = self.request.data.get('texts')
+
+            # 校验 payloads 和 texts 是否为列表
+            if not isinstance(payloads, list) or not isinstance(texts, list):
+                raise ValueError('payloads 和 texts 必须都是列表。')
+
+            # 校验 payloads 和 texts 长度是否一致
+            if len(payloads) != len(texts):
+                raise ValueError('payloads 和 texts 的长度不一致。')
+
+            # 校验 payloads 列表中的每个元素是否为字典
+            if not all(isinstance(item, dict) for item in payloads):
+                raise ValueError('payloads 列表中的每个元素必须是字典。')
+
+            # 校验 texts 列表中的每个元素是否为字符串
+            if not all(isinstance(item, str) for item in texts):
+                raise ValueError('texts 列表中的每个元素必须是字符串。')
+
+            # 根据 payloads 长度生成对应数量的 UUID
+            ids = [str(uuid.uuid4()) for _ in range(len(payloads))]
+
+            # 更新向量数据库
+            updater = VectorDatabaseUpdater(EMBEDDING_MODEL_PATH, QDRANT_HOST, QDRANT_POST,
+                                            user_id, embedding_model=settings.MY_GLOBAL_EMBEDDING_MODEL)
+            update_res = updater.insert_data(ids, payloads, texts)
+
+            # 返回成功响应
+            response_data = {
+                'message': '向量更新完成',
+                'data': {'result': update_res}
+            }
+            return Response(response_data, status=status.HTTP_202_ACCEPTED)
+
+        except ValueError as ve:
+            # 捕获并返回自定义的错误信息
+            response_data = {
+                'message': '向量更新失败',
+                'data': {'errors': str(ve)}
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            # 捕获其他异常并返回错误信息
+            response_data = {
+                'message': '向量更新失败',
+                'data': {'errors': str(e)}
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     # Endpoint to check task status
     @action(detail=False, methods=['GET'])
