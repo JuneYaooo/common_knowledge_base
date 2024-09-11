@@ -174,7 +174,7 @@ class CustomizeKBView(ModelViewSet):
                 'message': '向量更新完成',
                 'data': {'result': update_res}
             }
-            return Response(response_data, status=status.HTTP_202_ACCEPTED)
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except ValueError as ve:
             # 捕获并返回自定义的错误信息
