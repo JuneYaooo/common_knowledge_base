@@ -103,8 +103,8 @@ class CustomizeKBView(ModelViewSet):
             local_file_path = ""
             if uploaded_file:
                 file_extension = uploaded_file.name.split('.')[-1].lower()
-                if file_extension not in ['xlsx', 'xls', 'md', 'zip', 'pdf', 'docx']:
-                    return Response({'message': '数据库更新失败', 'data': {'error': '文件格式不支持'}},
+                if file_extension not in ['xlsx', 'xls', 'md', 'zip', 'pdf', 'docx',"txt"]:
+                    return Response({'message': '数据库更新失败', 'data': {'error': '文件格式不支持，目前只支持xlsx、xls、md、zip、pdf、docx、txt'}},
                                     status=status.HTTP_400_BAD_REQUEST)
 
                 # 准备保存文件

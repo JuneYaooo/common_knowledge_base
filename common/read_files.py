@@ -476,7 +476,7 @@ def split_markdown_by_headings(markdown_text, max_token_length=1000):
 def split_text_by_length(text, max_token_length=1000):
     def split_sentences(text, max_length):
         """按句子拆分段落，如果段落长度超过最大限制，按完整句子拆分"""
-        sentences = re.split(r'(?<=[。！？])', text)
+        sentences = re.split(r'(?<=[。！？])|\n', text)
         paragraphs = []
         current_paragraph = ""
 
@@ -1097,3 +1097,28 @@ def read_url(url):
     except Exception as e:
         logger.info(f"Error reading {url}: {e}")
         return ''
+
+
+def read_txt(filepath):
+    """
+    从.txt文件中读取文本内容。
+
+    参数:
+    filepath (str): .txt文件的路径。
+
+    返回:
+    dict: 包含文件扩展名、文件名和文件内容的字典。
+    """
+    try:
+        filename = os.path.basename(filepath)
+        file_extension = os.path.splitext(filename)[1].lower()
+        result = {'file_extension': file_extension, 'file_name': filename}
+
+        # 读取文件内容
+        with open(filepath, 'r', encoding='utf-8') as file:
+            file_content = file.read()
+        result['file_content'] = file_content
+        return result
+    except Exception as e:
+        logger.info(f"Error reading {filepath}: {e}")
+        return {'file_extension': '', 'file_name': '', 'file_content': ''}

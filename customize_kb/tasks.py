@@ -6,7 +6,7 @@ from django.core.cache import cache
 import pandas as pd
 import json
 from common.qdrant_new import VectorDatabaseUpdater
-from common.read_files import read_file, process_markdown,process_txt, list_files_in_folder, unzip_file, extract_pdf, read_docx, process_docx, extract_md_title, read_url, process_url
+from common.read_files import read_file, process_markdown,process_txt, list_files_in_folder, unzip_file, extract_pdf, read_docx, process_docx, extract_md_title, read_url, process_url, read_txt, process_txt
 from common.llm_assist_rag import get_qa_chunk
 from django.conf import settings
 import traceback
@@ -130,6 +130,18 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
                     finished_file_list.append(temp_file_path)
                     task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
                     time.sleep(1.2)
+            elif file_extension in ('txt'):
+                file_info = read_txt(temp_file_path)
+                if file_info==[]:
+                    logger.info(f"Failed to read file {temp_file_path}")
+                    task.update_state(state='FAILURE', meta={'exc_type': '','message': f"Failed to read file {temp_file_path}"})
+                    raise ValueError(f"Failed to read file {temp_file_path}")
+                result_list = process_txt(file_info["file_content"], file_info["file_name"])
+                updater.insert_one_doc(result_list)
+                # os.remove(temp_file_path)
+                finished_file_list.append(temp_file_path)
+                # logger.info(f"Temporary file {temp_file_path} deleted successfully")
+                task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
             elif file_extension in ('zip'):
                 extracted_path = unzip_file(temp_file_path)
                 logger.info(f"extracted_path {extracted_path}")
@@ -138,11 +150,11 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
                 for file_path in file_paths_list:
                     single_file_extension = file_path.split('.')[-1].lower()
                     logger.info(f"single_file_extension {single_file_extension}")
-                    file_info = read_file(file_path) if single_file_extension == 'md' else extract_pdf(file_path) if single_file_extension == 'pdf' else read_docx(file_path) if single_file_extension == 'docx'else []
+                    file_info = read_file(file_path) if single_file_extension in ('md','txt') else extract_pdf(file_path) if single_file_extension == 'pdf' else read_docx(file_path) if single_file_extension == 'docx'else []
                     if file_info==[]:
                         logger.info(f"Failed to read file {file_path}")
                         continue
-                    result_list = process_txt(file_info["file_content"], file_info["file_name"]) if single_file_extension == 'pdf' else process_markdown(file_info["file_content"], file_info["file_name"]) if single_file_extension != 'docx' else process_docx(file_info["file_content"], file_info["file_name"])
+                    result_list = process_txt(file_info["file_content"], file_info["file_name"]) if single_file_extension in ('txt','pdf') else process_markdown(file_info["file_content"], file_info["file_name"]) if single_file_extension != 'docx' else process_docx(file_info["file_content"], file_info["file_name"])
                     updater.insert_one_doc(result_list)
                     # 需要增加多一点的时间给数据插入，随机休息8~10秒
                     snap = random.randint(18,30)
@@ -224,6 +236,22 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
                     updater.insert_one_doc(result_list)
                     finished_file_list.append(temp_file_path)
                     task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
+            elif file_extension in ('txt'):
+                file_info = read_txt(temp_file_path)
+                if file_info==[]:
+                    logger.info(f"Failed to read file {temp_file_path}")
+                    task.update_state(state='FAILURE', meta={'exc_type': '','message': f"Failed to read file {temp_file_path}"})
+                    raise ValueError(f"Failed to read file {temp_file_path}")
+                text = file_info["file_content"]
+                filename = file_info["file_name"]
+                title = extract_md_title(text)
+                payload = get_qa_chunk(text,filename,title)
+                updater.insert_qa_doc(payload)
+                # 原来的模式也加上
+                result_list = process_txt(file_info["file_content"], file_info["file_name"])
+                updater.insert_one_doc(result_list)
+                finished_file_list.append(temp_file_path)
+                task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
             elif file_extension in ('zip'):
                 extracted_path = unzip_file(temp_file_path)
                 logger.info(f"extracted_path {extracted_path}")
@@ -232,11 +260,11 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
                 for file_path in file_paths_list:
                     single_file_extension = file_path.split('.')[-1].lower()
                     logger.info(f"single_file_extension {single_file_extension}")
-                    file_info = read_file(file_path) if single_file_extension == 'md' else extract_pdf(file_path) if single_file_extension == 'pdf' else read_docx(file_path) if single_file_extension == 'docx'else []
+                    file_info = read_file(file_path) if single_file_extension in ('md','txt') else extract_pdf(file_path) if single_file_extension == 'pdf' else read_docx(file_path) if single_file_extension == 'docx'else []
                     if file_info==[]:
                         logger.info(f"Failed to read file {file_path}")
                         continue
-                    result_list = process_txt(file_info["file_content"], file_info["file_name"]) if single_file_extension == 'pdf' else process_markdown(file_info["file_content"], file_info["file_name"]) if single_file_extension != 'docx' else process_docx(file_info["file_content"], file_info["file_name"])
+                    result_list = process_txt(file_info["file_content"], file_info["file_name"]) if single_file_extension in ('txt','pdf') else process_markdown(file_info["file_content"], file_info["file_name"]) if single_file_extension != 'docx' else process_docx(file_info["file_content"], file_info["file_name"])
                     updater.insert_one_doc(result_list)
                     finished_file_list.append(file_info["file_name"])
                     # QA增强模式
@@ -310,6 +338,19 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
                     updater.insert_qa_doc(payload)
                     finished_file_list.append(temp_file_path)
                     task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
+            elif file_extension in ('txt'):
+                file_info = read_txt(temp_file_path)
+                if file_info==[]:
+                    logger.info(f"Failed to read file {temp_file_path}")
+                    task.update_state(state='FAILURE', meta={'exc_type': '','message': f"Failed to read file {temp_file_path}"})
+                    raise ValueError(f"Failed to read file {temp_file_path}")
+                text = file_info["file_content"]
+                filename = file_info["file_name"]
+                title = extract_md_title(text)
+                payload = get_qa_chunk(text,filename,title)
+                updater.insert_qa_doc(payload)
+                finished_file_list.append(temp_file_path)
+                task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
             elif file_extension in ('zip'):
                 extracted_path = unzip_file(temp_file_path)
                 logger.info(f"extracted_path {extracted_path}")
@@ -318,7 +359,7 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
                 for file_path in file_paths_list:
                     single_file_extension = file_path.split('.')[-1].lower()
                     logger.info(f"single_file_extension {single_file_extension}")
-                    file_info = read_file(file_path) if single_file_extension == 'md' else extract_pdf(file_path) if single_file_extension == 'pdf' else read_docx(file_path) if single_file_extension == 'docx'else []
+                    file_info = read_file(file_path) if single_file_extension in ('md','txt') else extract_pdf(file_path) if single_file_extension == 'pdf' else read_docx(file_path) if single_file_extension == 'docx'else []
                     if file_info==[]:
                         logger.info(f"Failed to read file {file_path}")
                         continue                    
