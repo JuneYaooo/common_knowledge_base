@@ -8,12 +8,14 @@ import json
 from common.qdrant_new import VectorDatabaseUpdater
 from common.read_files import read_file, process_markdown,process_txt, list_files_in_folder, unzip_file, extract_pdf, read_docx, process_docx, extract_md_title, read_url, process_url, read_txt, process_txt
 from common.llm_assist_rag import get_qa_chunk
+from common.read_files import process_article
 from django.conf import settings
 import traceback
 import shutil
 import os
 import random
 import time
+
 
 # 设置日志记录器
 logger = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ QDRANT_POST = os.getenv("QDRANT_POST")
 
 
 @shared_task(name='update_database_async')
-def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', urls=[]):
+def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', urls=[], article_text=None, article_metadata={}):
     logger.info(f'===in task==={mode}')
     task = current_task
     task.update_state(state='PROGRESS', meta={'message': 'Started'})
@@ -42,7 +44,7 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
             logger.error('Invalid conf_dict: %s', e)
             task.update_state(state='FAILURE', meta={'exc_type': exc_type,'message': 'Invalid conf_dict: ' + str(e)})
             raise Ignore()
-        file_extension = temp_file_path.split('.')[-1].lower() if temp_file_path != '' else 'urls'
+        file_extension = temp_file_path.split('.')[-1].lower() if temp_file_path != '' else 'urls' if (urls != [] and len(urls) > 0 and urls is not None) else 'article' if article_text != None else ''
         logger.info(f"file_extension {file_extension}")
         logger.info(f"temp_file_path {temp_file_path}")
         logger.info(f"import urls {urls}")
@@ -164,6 +166,12 @@ def update_database_async(user_id, conf_dict, temp_file_path, mode='normal', url
                 finished_file_list.append(temp_file_path)
                 shutil.rmtree(extracted_path, ignore_errors=False, onerror=None)
                 logger.info('finished insert files: '+','.join(finished_file_list))
+                task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
+            elif file_extension in ('article'):
+                article_metadata = json.loads(article_metadata) if article_metadata else {}
+                result_list = process_article(article_text, article_metadata)
+                updater.insert_one_doc(result_list)
+                finished_file_list.append(json.dumps(article_metadata))
                 task.update_state(state='SUCCESS', meta={'message': 'Database update completed'})
             else:
                 task.update_state(state='FAILURE', meta={'exc_type': '','message': 'Unsupported file format'})

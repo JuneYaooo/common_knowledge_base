@@ -87,11 +87,13 @@ class CustomizeKBView(ModelViewSet):
             conf_dict = self.request.data.get('conf_dict')
             mode = self.request.data.get('mode', 'normal')
             url = self.request.data.get('url', None)
-            urls = self.request.data.get('urls', None)
+            urls = self.request.data.get('urls', [])
             uploaded_file = self.request.FILES.get('file')
+            article_text = self.request.data.get('article_text', None)
+            article_metadata = self.request.data.get('article_metadata', {})
 
-            if not uploaded_file and not url and not urls:
-                return Response({'message': '数据库更新失败', 'data': {'error': '文件未上传且未提供URL'}}, status=status.HTTP_400_BAD_REQUEST)
+            if not uploaded_file and not url and not urls and not article_text:
+                return Response({'message': '数据库更新失败', 'data': {'error': '文件未上传且未提供URL且未提供文章内容'}}, status=status.HTTP_400_BAD_REQUEST)
             if url and not urls:
                 urls = [url]
             elif urls and not url:
@@ -120,7 +122,7 @@ class CustomizeKBView(ModelViewSet):
                     for chunk in uploaded_file.chunks():
                         local_file.write(chunk)
 
-            task = update_database_async.apply_async(args=(user_id, conf_dict, local_file_path, mode, urls))
+            task = update_database_async.apply_async(args=(user_id, conf_dict, local_file_path, mode, urls, article_text, article_metadata))
 
             response_data = {
                 'message': '任务已提交',

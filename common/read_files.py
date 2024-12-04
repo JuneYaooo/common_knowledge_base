@@ -16,6 +16,7 @@ import random
 import PyPDF2
 import pdfplumber
 import fitz  # PyMuPDF
+import io
 import logging
 
 # 设置日志记录器
@@ -723,14 +724,35 @@ def extract_pdf(filepath):
     upload_url = os.getenv("OCR_API_URL")
     if upload_url:
         try:
-            files = {'file': (filename, open(filepath, 'rb'))}
-            response = requests.post(upload_url, data={'return_format': 'md'}, files=files)
-            assert response.status_code == 200
-            response_json = response.json()
-            ocr_text = clean_text("".join(response_json.get('result', [])))
-            logger.info(f"OCR API extracted: {ocr_text[:50]}...")  # 打印前 50 个字符
-            if ocr_text and not is_text_garbled(ocr_text):
-                result['file_content'] = ocr_text
+            with open(filepath, 'rb') as file:
+                pdf = PyPDF2.PdfReader(file)
+                num_pages = len(pdf.pages)
+                ocr_text = []
+                
+                for i in range(0, num_pages, 20):
+                    end_page = min(i + 20, num_pages)
+                    
+                    # 创建一个新的 PDF 写入器
+                    pdf_writer = PyPDF2.PdfWriter()
+                    for page_num in range(i, end_page):
+                        pdf_writer.add_page(pdf.pages[page_num])
+                    
+                    # 将切分后的 PDF 保存到内存中
+                    temp_pdf = io.BytesIO()
+                    pdf_writer.write(temp_pdf)
+                    temp_pdf.seek(0)
+                    
+                    # 发送请求到 OCR API
+                    files = {'file': (f'{filename}_part_{i//20+1}.pdf', temp_pdf)}
+                    response = requests.post(upload_url, data={'return_format': 'md'}, files=files)
+                    assert response.status_code == 200
+                    response_json = response.json()
+                    ocr_text.extend(response_json.get('result', []))
+                
+            combined_ocr_text = clean_text("".join(ocr_text))
+            logger.info(f"OCR API extracted: {combined_ocr_text[:50]}...")  # 打印前 50 个字符
+            if combined_ocr_text and not is_text_garbled(combined_ocr_text):
+                result['file_content'] = combined_ocr_text
                 return result
             logger.info(f"OCR result seems garbled for {filename}")
         except Exception as e:
@@ -1122,3 +1144,48 @@ def read_txt(filepath):
     except Exception as e:
         logger.info(f"Error reading {filepath}: {e}")
         return {'file_extension': '', 'file_name': '', 'file_content': ''}
+    
+def process_article(txt_text, article_metadata={}):
+    # 调用函数将txt文本拆分成段落
+    paragraphs = split_text_by_length(txt_text)
+    title = article_metadata['title'] if 'title' in article_metadata else ''
+
+    # 构建结果列表
+    result_list = []
+    for idx, paragraph in enumerate(paragraphs, 1):
+        # 将段落拆分成句子
+        sentences = re.split(r'(?<=[。！？])', paragraph)
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            # 构建字典
+            result_dict = {
+                'text': sentence,
+                '段落': paragraph,
+                'serial_number': idx
+            }
+            result_dict.update(article_metadata)
+
+            # 添加到结果列表
+            result_list.append(result_dict)
+
+            # 添加带文件名+内容提问的版本
+            if title:
+                result_dict = {
+                    'text': '文章：' + title + ' ' + sentence,
+                    '段落': paragraph,
+                    'serial_number': idx
+                }
+                result_dict.update(article_metadata)
+                result_list.append(result_dict)
+
+    # 添加整篇文章信息
+    result_dict = {
+        'text': title,
+        '段落': txt_text,
+    }
+    result_dict.update(article_metadata)
+    result_list.append(result_dict)
+
+    return result_list
